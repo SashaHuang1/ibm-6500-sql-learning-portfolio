@@ -1,0 +1,279 @@
+---
+title: "Introduction to SQL: Course Completion and Learning Notes"
+author: "Yushan Huang"
+date: today
+format:
+  html:
+    toc: true
+    toc-title: "Contents"
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    embed-resources: true
+---
+
+# Course-Completion Evidence
+
+I completed the DataCamp *Introduction to SQL* course on November 19, 2025. The statement of accomplishment below documents my successful completion of the course.
+
+![DataCamp Statement of Accomplishment for Introduction to SQL](image/introduction-to-sql-certificate.png)
+
+# Learning Notes and Key Takeaways
+
+## Chapter 1: Relational Databases
+
+### Main Ideas
+
+The first chapter focused on understanding how data is organized before writing SQL queries. SQL (Structured Query Language) is used to communicate with data stored in databases. A relational database organizes information into related tables rather than placing everything into one large table.
+
+The course used a local library as an example. A library database can contain separate tables for books, patrons, and checkouts. Each table contains records in rows and fields in columns. Relationships between tables allow information to be connected and analyzed without unnecessarily duplicating the same information.
+
+A major idea from this chapter is that good database organization makes later analysis easier. Using multiple related tables can reduce duplication and keep information clearer than storing everything in one large spreadsheet-style table.
+
+### Important SQL and Database Concepts
+
+Key concepts from this chapter include:
+
+- **Database:** a structured collection of data.
+- **Table:** a component of a database that organizes records and fields.
+- **Record:** a row representing one observation or entity.
+- **Field:** a column representing one type of information.
+- **Unique identifier:** a field whose value distinguishes one record from all other records in the same table.
+- **Schema:** a blueprint describing the structure of a database, including its tables, relationships, and field data types.
+- **Data type:** the kind of value a field is designed to store, such as text or numeric data.
+- **SQL query:** instructions used to access and analyze information in a database.
+
+The chapter also introduced common data types such as `VARCHAR`, `INT`, and numeric types. Choosing an appropriate data type helps ensure that information is stored correctly and that appropriate operations can be performed on it.
+
+### Example: Exploring a Table
+
+```sql
+SELECT *
+FROM books;
+```
+
+This query selects every field from the `books` table. The asterisk (`*`) is a wildcard that means all fields should be returned.
+
+For example, when first exploring an unfamiliar dataset, selecting all fields can help me understand what information the table contains before I write a more specific query.
+
+### Example: Choosing a Unique Identifier
+
+A unique identifier should distinguish one record from another. For a library's `patrons` table, a library card number is a better identifier than a person's name because two patrons could have the same name.
+
+A simplified example is:
+
+```text
+patrons
+--------------------------------
+card_num   name
+101        Alex
+102        Jordan
+103        Alex
+```
+
+Here, `name` is not unique, while `card_num` uniquely identifies each patron.
+
+### Example: Data Types
+
+The type of a field should match the information being stored. For example, a price such as `63.75` should use an appropriate numeric type rather than a text type.
+
+```text
+price
+-----
+63.75
+```
+
+Using a numeric type makes it possible to perform calculations such as averages, totals, and comparisons.
+
+### Explanation of the Chapter Examples
+
+The examples in this chapter show that SQL analysis depends on understanding the structure of the underlying data first. Before asking a business question, I need to know which table contains the relevant information, which field identifies each record, and what type of value each field stores.
+
+### CEP Application
+
+These ideas are useful for a marketing or CEP project because marketing data often comes from multiple sources. For example, customer information, campaign information, survey responses, and transaction records may be stored in separate tables. Understanding tables, records, fields, unique identifiers, and data types would help me organize those sources correctly before analyzing them.
+
+A well-designed database can also reduce duplicated information and make it easier to connect customer-level information with campaign or purchase information.
+
+---
+
+## Chapter 2: Querying
+
+### Main Ideas
+
+The second chapter introduced the basic process of using SQL to ask questions about data. The first two important keywords were `SELECT` and `FROM`.
+
+`SELECT` tells SQL which fields I want to see, while `FROM` tells SQL which table contains those fields. The result of a query is called a result set.
+
+The chapter also introduced ways to make query results easier to use and understand. `DISTINCT` removes duplicate values from the result, aliases rename fields in the result set, and views save a query so that it can be referenced later.
+
+Another important lesson was that SQL has different "flavors." Different database systems can use slightly different syntax for the same task. The course compared PostgreSQL and SQL Server and emphasized the importance of recognizing the database system being used.
+
+Finally, the chapter introduced `LIMIT`, which can be used in PostgreSQL to return only a specified number of records. Limiting results is useful when testing a query or exploring a large dataset.
+
+### Important SQL Syntax
+
+The main syntax from this chapter includes:
+
+```sql
+SELECT column_name
+FROM table_name;
+```
+
+Select multiple fields:
+
+```sql
+SELECT column_1, column_2
+FROM table_name;
+```
+
+Select all fields:
+
+```sql
+SELECT *
+FROM table_name;
+```
+
+Return unique values:
+
+```sql
+SELECT DISTINCT column_name
+FROM table_name;
+```
+
+Rename a field with an alias:
+
+```sql
+SELECT column_name AS new_name
+FROM table_name;
+```
+
+Create a view:
+
+```sql
+CREATE VIEW view_name AS
+SELECT column_name
+FROM table_name;
+```
+
+Limit the number of rows in PostgreSQL:
+
+```sql
+SELECT column_name
+FROM table_name
+LIMIT 10;
+```
+
+### Example: Selecting Specific Fields
+
+```sql
+SELECT title, author
+FROM books;
+```
+
+This query returns only the `title` and `author` fields from the `books` table. Selecting only the fields needed for a question makes the result easier to read and keeps the query focused.
+
+### Example: Selecting Unique Values
+
+```sql
+SELECT DISTINCT author
+FROM books;
+```
+
+This query returns each author only once, even if the same author appears on multiple records in the `books` table.
+
+The `DISTINCT` keyword is useful when I want to understand the set of unique categories represented in a field.
+
+### Example: Using an Alias
+
+```sql
+SELECT DISTINCT author AS unique_author
+FROM books;
+```
+
+The alias changes the name displayed in the result set from `author` to `unique_author`. It does not permanently rename the field in the underlying table.
+
+Aliases can improve readability, especially when a calculated field or an existing field name is not sufficiently descriptive.
+
+### Example: Creating and Using a View
+
+```sql
+CREATE VIEW library_authors AS
+SELECT DISTINCT author AS unique_author
+FROM books;
+```
+
+A view is a virtual table based on a stored query. Instead of storing a separate copy of the data, the database stores the query definition so the result can be used later.
+
+After creating the view, it can be queried like a table:
+
+```sql
+SELECT *
+FROM library_authors;
+```
+
+This can be useful when the same query needs to be reused or shared.
+
+### Example: Limiting Results
+
+```sql
+SELECT genre
+FROM books
+LIMIT 10;
+```
+
+This PostgreSQL query returns only the first 10 rows from the selected result. Limiting results is useful when testing code or when I only need a small sample to understand a dataset.
+
+### SQL Style and Readability
+
+The course also emphasized writing SQL in a consistent and readable style. A readable query uses capitalization for SQL keywords and clear, descriptive table and field names.
+
+For example:
+
+```sql
+SELECT card_num, total_fine
+FROM patrons;
+```
+
+This is easier to read than putting the entire query on one line with inconsistent capitalization.
+
+Readable SQL matters because queries are often reviewed, modified, and reused by other people.
+
+### SQL Flavors
+
+SQL is a common language for working with relational databases, but database systems can have their own variations in syntax and available features. The course specifically introduced differences between PostgreSQL and SQL Server.
+
+Therefore, when moving between databases, I should check which SQL flavor is being used rather than assuming that every command will work exactly the same way.
+
+### Explanation of the Chapter Examples
+
+The examples from this chapter show a progression from simply retrieving data to creating more useful and reusable outputs.
+
+First, `SELECT` and `FROM` allow me to retrieve the fields I need. Then `DISTINCT` helps me identify unique values, aliases make results clearer, views make useful queries reusable, and `LIMIT` helps me safely test queries or inspect a sample of a large table.
+
+### CEP Application
+
+These querying skills are directly useful for marketing analytics and CEP work. For example, I could use `SELECT` to retrieve customer attributes, `DISTINCT` to identify unique customer segments or product categories, aliases to create clearer report output, and `LIMIT` while testing a query against a large dataset.
+
+Views could also be useful when a project repeatedly needs the same type of summarized or filtered result. Instead of rebuilding the query from scratch, I could save it as a view and use that result again.
+
+# Overall Reflection and Future Reference
+
+The most useful skills I learned in this course were understanding relational database structure and writing basic `SELECT` queries. Before this course, SQL syntax could seem difficult because I was not always sure how a database was organized. Learning about tables, records, fields, identifiers, and data types gave me a clearer foundation for writing queries.
+
+One of the concepts I expect to review again is the difference between database structure and query syntax. Understanding the data model comes before writing a useful query. I also expect to review `DISTINCT`, aliases, views, and the differences among SQL flavors because these concepts can become important when working with real datasets.
+
+SQL can support digital marketing analytics by making it possible to retrieve and organize large amounts of customer, campaign, website, survey, and transaction data. Instead of manually searching through a spreadsheet, a SQL query can select the fields needed for a specific business question and return a focused result.
+
+For my CEP, I expect SQL to be useful for obtaining, organizing, filtering, and preparing data for analysis. In particular, understanding how tables are related and how to write clear queries should make it easier to work with larger datasets and connect marketing questions to measurable data.
+
+I also expect to use this report as a future reference. The basic structure of a query, the difference between records and fields, the purpose of unique identifiers, and the use of `DISTINCT`, aliases, views, and `LIMIT` are concepts I can review when I need to return to SQL later.
+
+# Appendix: Publication Links
+
+- **GitHub Repository:** [GitHub Repository](https://github.com/YOUR-USERNAME/REPOSITORY-NAME)
+- **Published Introduction to SQL Report:** [Published Introduction to SQL Report](https://YOUR-USERNAME.github.io/REPOSITORY-NAME/introduction-to-sql.html)
+
+## Source
+
+Course materials used for these notes: DataCamp, *Introduction to SQL*.
