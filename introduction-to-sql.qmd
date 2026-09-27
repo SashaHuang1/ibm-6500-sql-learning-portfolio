@@ -271,7 +271,7 @@ I also expect to use this report as a future reference. The basic structure of a
 
 # Appendix: Publication Links
 
-- **GitHub Repository:** [GitHub Repository](https://github.com/YOUR-USERNAME/REPOSITORY-NAME)
+- **GitHub Repository:** [GitHub Repository](https://github.com/SashaHuang1/ibm-6500-sql-learning-portfolio)
 - **Published Introduction to SQL Report:** [Published Introduction to SQL Report](https://YOUR-USERNAME.github.io/REPOSITORY-NAME/introduction-to-sql.html)
 
 ## Source
