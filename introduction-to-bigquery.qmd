@@ -1,0 +1,662 @@
+---
+title: "Introduction to BigQuery: Course Completion and Learning Notes"
+author: "Yushan Huang"
+date: today
+format:
+  html:
+    toc: true
+    toc-title: "Contents"
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    embed-resources: true
+---
+
+# Course-Completion Evidence
+
+I completed all four chapters of the DataCamp **Introduction to BigQuery** course in October 2026. The course covered BigQuery architecture and data organization, writing queries and working with data types, analytical querying with CTEs and window functions, and data management and query optimization.
+
+The screenshots below show my completed course chapters.
+
+![Chapter 1: BigQuery Architecture and Structure completed](images/chapter-1-completion.png){width=90%}
+
+![Chapter 2: Writing queries and data types completed](images/chapter-2-completion.png){width=90%}
+
+![Chapter 3: Querying data in BigQuery completed](images/chapter-3-completion.png){width=90%}
+
+![Chapter 4: Data management and optimization completed](images/chapter-4-completion.png){width=90%}
+
+# Learning Notes and Key Takeaways
+
+## Chapter 1: BigQuery Architecture and Structure
+
+### Main ideas
+
+BigQuery is a cloud-based analytical data warehouse designed for large datasets and analytical workloads. A major feature is the separation of **storage** and **compute**. This architecture allows BigQuery to store large amounts of data while using separate computing resources to execute queries. BigQuery is especially appropriate for large analytical and distributed query workloads rather than highly transactional database workloads.
+
+### Architecture and terminology
+
+The course introduced several components that work together in BigQuery:
+
+- **Colossus** and **Capacitor** are associated with storage.
+- **Dremel** is the distributed query execution engine.
+- Dremel uses **execution trees, leaf nodes, mixers, and slots** to distribute query processing.
+- **Borg** and **Jupiter** are part of the computing infrastructure.
+
+A simple way I remember the architecture is:
+
+```text
+Storage                  Query execution                 Computing
+Colossus                 Dremel                          Borg
+Capacitor                execution trees                Jupiter
+                         leaf nodes
+                         mixers and slots
+```
+
+### BigQuery data organization
+
+BigQuery organizes data hierarchically:
+
+```text
+Project
+  └── Dataset
+        └── Table
+```
+
+For example, `ecommerce.ecomm_order_details` refers to the `ecomm_order_details` table inside the `ecommerce` dataset. Data location also matters. The course emphasized planning the region where data is stored because queries across datasets depend on compatible locations and appropriate access.
+
+### Basic SQL examples
+
+A quick way to preview a table is:
+
+```sql
+SELECT *
+FROM ecommerce.ecomm_order_details
+LIMIT 3;
+```
+
+`SELECT *` returns all columns, while `LIMIT 3` restricts the output to three rows.
+
+To return unique seller cities:
+
+```sql
+SELECT DISTINCT seller_city
+FROM ecommerce.ecomm_sellers;
+```
+
+`DISTINCT` removes duplicate values and returns each seller city once.
+
+### CEP application
+
+The project-dataset-table structure could help me organize CEP data into logical groups such as customers, transactions, campaigns, survey responses, or website behavior. BigQuery's distributed architecture would be useful if a marketing project contained datasets too large to analyze efficiently on a local computer.
+
+## Chapter 2: Writing Queries and Data Types
+
+### Main ideas
+
+This chapter reviewed SQL fundamentals in BigQuery and introduced data ingestion, date/time functions, and nested or unstructured data. The main lesson for me was that BigQuery is not only about SQL syntax; it also requires understanding how data is loaded, structured, and stored.
+
+### Selecting only necessary columns
+
+Instead of always using `SELECT *`, I can request only the columns needed:
+
+```sql
+SELECT
+    order_id,
+    customer_id,
+    order_status,
+    order_purchase_timestamp
+FROM ecommerce.ecomm_order_details
+LIMIT 10;
+```
+
+This makes the result easier to read and avoids querying unnecessary columns.
+
+### Aggregating and ordering results
+
+To find the ten smallest orders by total payment value:
+
+```sql
+SELECT
+    order_id,
+    SUM(payment_value) AS total_payment
+FROM ecommerce.ecomm_payments
+GROUP BY order_id
+ORDER BY SUM(payment_value) ASC
+LIMIT 10;
+```
+
+`SUM()` calculates the total payment value for each order. `GROUP BY` produces one result per order, and `ASC` places the smallest totals first.
+
+### Joining tables
+
+Information can be stored across different tables. The following query joins two tables through their common `order_id` column:
+
+```sql
+SELECT
+    ecomm_orders.order_id,
+    ecomm_orders.order_items,
+    ecomm_order_details.order_status,
+    ecomm_order_details.order_purchase_timestamp
+FROM ecommerce.ecomm_orders
+JOIN ecommerce.ecomm_order_details USING (order_id)
+ORDER BY order_purchase_timestamp DESC
+LIMIT 10;
+```
+
+`USING (order_id)` is convenient when both tables use the same join-column name. `DESC` places the most recent orders first.
+
+### Loading data into BigQuery
+
+The course introduced several common data formats that BigQuery can ingest, including **CSV, JSON, Avro, Parquet, and ORC**. The local-data exercise emphasized that local uploads have a relatively small file-size limit and that `LOAD DATA` is not used to load a file directly from a local computer.
+
+For data stored in cloud storage, a `LOAD DATA` statement can follow this pattern:
+
+```sql
+LOAD DATA INTO mydataset.table
+FROM FILES(
+    uris = ['gs://bucket/path/file.csv'],
+    format = 'CSV'
+);
+```
+
+The URI identifies the cloud-storage file and `format` tells BigQuery how the source data is stored.
+
+### Dates and timestamps
+
+To count orders in September:
+
+```sql
+SELECT
+    COUNT(order_id)
+FROM ecommerce.ecomm_order_details
+WHERE EXTRACT(MONTH FROM order_purchase_timestamp) = 9;
+```
+
+To count orders in the fourth quarter of 2017:
+
+```sql
+SELECT
+    COUNT(order_id)
+FROM ecommerce.ecomm_order_details
+WHERE EXTRACT(QUARTER FROM order_purchase_timestamp) = 4
+  AND EXTRACT(YEAR FROM order_purchase_timestamp) = 2017;
+```
+
+A timestamp can be formatted for reporting:
+
+```sql
+SELECT
+    FORMAT_TIMESTAMP("%D", order_purchase_timestamp) AS order_date,
+    order_id
+FROM ecommerce.ecomm_order_details
+LIMIT 3;
+```
+
+`TIMESTAMP_ADD()` and `TIMESTAMP_SUB()` are useful for defining time windows. For example:
+
+```sql
+SELECT
+    COUNT(order_id)
+FROM ecommerce.ecomm_order_details
+WHERE order_purchase_timestamp BETWEEN
+    TIMESTAMP_SUB(TIMESTAMP('2017-11-24'), INTERVAL 3 DAY)
+    AND TIMESTAMP_ADD(TIMESTAMP('2017-11-24'), INTERVAL 3 DAY);
+```
+
+This counts orders in the three days before and after Black Friday 2017.
+
+### Arrays, STRUCTs, SEARCH, and UNNEST
+
+BigQuery can work with nested and repeated data. An array can be constructed with a subquery:
+
+```sql
+SELECT
+    ARRAY(
+        SELECT product_id
+        FROM ecommerce.ecomm_products
+        WHERE product_weight_g = 2220
+    );
+```
+
+Nested `order_items` can be expanded with `UNNEST()`:
+
+```sql
+SELECT
+    order_id,
+    items.price
+FROM ecommerce.ecomm_orders,
+     UNNEST(order_items) AS items
+WHERE order_id = 'a0e747c954a595b0e3458c87ab1a4958';
+```
+
+Dot notation such as `items.price` accesses a field inside the unnested structure. The course also introduced `SEARCH()` for finding values in suitable unstructured or semi-structured data.
+
+### CEP application
+
+These techniques could support marketing analyses involving campaign dates, customer orders, transaction values, or nested event data. Date functions would help compare activity before and after a campaign, while `UNNEST()` could help analyze repeated products, events, or other nested records.
+
+## Chapter 3: Querying Data in BigQuery
+
+### Common table expressions (CTEs)
+
+A Common Table Expression uses `WITH` to create a temporary named result. CTEs make complex queries easier to read and allow filtering or aggregation to happen before the final query.
+
+For example, I can first keep orders containing an item priced above $150:
+
+```sql
+WITH orders AS (
+    SELECT order_id
+    FROM ecommerce.ecomm_orders,
+         UNNEST(order_items) AS items
+    WHERE items.price > 150
+)
+
+SELECT
+    COUNT(order_id),
+    order_status
+FROM ecommerce.ecomm_order_details od
+JOIN orders o USING (order_id)
+GROUP BY order_status;
+```
+
+### Optimizing with CTEs
+
+A CTE can perform an aggregation before the main query:
+
+```sql
+WITH payments AS (
+    SELECT
+        MAX(payment_sequential) AS num_payments,
+        order_id
+    FROM ecommerce.ecomm_payments
+    GROUP BY order_id
+)
+
+SELECT
+    ARRAY_LENGTH(o.order_items) AS num_items,
+    MAX(p.num_payments) AS max_payments
+FROM ecommerce.ecomm_orders o
+JOIN payments p USING (order_id)
+GROUP BY ARRAY_LENGTH(o.order_items);
+```
+
+`ARRAY_LENGTH()` returns the number of elements in an array.
+
+Multiple CTEs can separate stages of analysis:
+
+```sql
+WITH orders AS (
+    SELECT
+        order_id,
+        items.product_id,
+        items.price
+    FROM ecommerce.ecomm_orders,
+         UNNEST(order_items) AS items
+    WHERE items.price > 100
+),
+products AS (
+    SELECT
+        product_id,
+        AVG(product_weight_g) AS avg_weight
+    FROM ecommerce.ecomm_products
+    GROUP BY product_id
+)
+
+SELECT
+    o.order_id,
+    p.avg_weight
+FROM orders o
+JOIN products p
+    ON p.product_id = o.product_id;
+```
+
+### COUNTIF and HAVING
+
+`COUNTIF()` performs a conditional count:
+
+```sql
+SELECT
+    product_category_name_english,
+    COUNTIF(product_weight_g > 5000) AS heavy_products
+FROM ecommerce.ecomm_products
+GROUP BY product_category_name_english;
+```
+
+`HAVING` filters aggregated results:
+
+```sql
+SELECT
+    product_category_name_english,
+    AVG(product_weight_g) AS avg_weight
+FROM ecommerce.ecomm_products
+GROUP BY product_category_name_english
+HAVING AVG(product_weight_g) > 10000;
+```
+
+A useful distinction is that `WHERE` filters individual rows before aggregation, while `HAVING` filters groups after aggregation.
+
+### ANY_VALUE
+
+GoogleSQL provides `ANY_VALUE()` for selecting a value from within an aggregated group. It can be combined with `HAVING MAX` or `HAVING MIN`:
+
+```sql
+SELECT
+    product_weight_g,
+    ANY_VALUE(
+        product_category_name_english
+        HAVING MAX product_photos_qty
+    ) AS random_product
+FROM ecommerce.ecomm_products
+GROUP BY product_weight_g;
+```
+
+### Logical aggregates
+
+`LOGICAL_AND()` returns true only when every condition in the group is true:
+
+```sql
+SELECT
+    customer_id,
+    LOGICAL_AND(order_status = 'delivered') AS all_delivered
+FROM ecommerce.ecomm_order_details
+GROUP BY customer_id;
+```
+
+`LOGICAL_OR()` returns true when at least one condition is true:
+
+```sql
+SELECT
+    customer_id,
+    LOGICAL_OR(order_status = 'shipped') AS any_shipped
+FROM ecommerce.ecomm_order_details
+GROUP BY customer_id;
+```
+
+### STRING_AGG and ARRAY_CONCAT_AGG
+
+`STRING_AGG()` combines text values into one string:
+
+```sql
+SELECT
+    o.order_id,
+    STRING_AGG(
+        DISTINCT product_category_name_english,
+        ', '
+    ) AS categories
+FROM ecommerce.ecomm_orders o,
+     UNNEST(order_items) AS items
+JOIN ecommerce.ecomm_products p
+    ON items.product_id = p.product_id
+WHERE ARRAY_LENGTH(o.order_items) > 1
+GROUP BY order_id;
+```
+
+`ARRAY_CONCAT_AGG()` aggregates arrays:
+
+```sql
+SELECT
+    items.seller_id,
+    ARRAY_CONCAT_AGG(order_items) AS seller_sales
+FROM ecommerce.ecomm_orders,
+     UNNEST(order_items) AS items
+GROUP BY items.seller_id;
+```
+
+### Approximate statistical functions
+
+GoogleSQL provides approximate aggregate functions that can improve performance on large datasets when an exact result is not required. The course introduced:
+
+- `APPROX_COUNT_DISTINCT`
+- `APPROX_QUANTILES`
+- `APPROX_TOP_COUNT`
+- `APPROX_TOP_SUM`
+
+For example, approximate unique customers by product:
+
+```sql
+SELECT
+    items.product_id,
+    APPROX_COUNT_DISTINCT(customer_id) AS estimated_unique_customers
+FROM ecommerce.ecomm_orders o,
+     UNNEST(o.order_items) AS items
+JOIN ecommerce.ecomm_order_details od USING (order_id)
+GROUP BY items.product_id;
+```
+
+Top three customers for each product:
+
+```sql
+SELECT
+    items.product_id,
+    APPROX_TOP_COUNT(customer_id, 3) AS top_customers
+FROM ecommerce.ecomm_orders o,
+     UNNEST(o.order_items) AS items
+JOIN ecommerce.ecomm_order_details od USING (order_id)
+GROUP BY items.product_id;
+```
+
+Approximate price quantiles for customers with large orders:
+
+```sql
+SELECT
+    od.customer_id,
+    APPROX_QUANTILES(items.price, 4) AS sales_quantiles
+FROM ecommerce.ecomm_orders o,
+     UNNEST(o.order_items) AS items
+JOIN ecommerce.ecomm_order_details od USING (order_id)
+WHERE ARRAY_LENGTH(o.order_items) > 8
+GROUP BY od.customer_id;
+```
+
+### Window functions
+
+Window functions calculate values across related rows without collapsing the result into one row per group. The course introduced `RANK()`, `LAG()`, `LEAD()`, rolling windows, and `QUALIFY`.
+
+To rank customers by total amount spent:
+
+```sql
+WITH orders AS (
+    SELECT
+        od.customer_id,
+        SUM(items.price) AS all_items
+    FROM ecommerce.ecomm_orders o,
+         UNNEST(o.order_items) AS items
+    JOIN ecommerce.ecomm_order_details od USING (order_id)
+    GROUP BY od.customer_id
+)
+
+SELECT
+    customer_id,
+    all_items,
+    RANK() OVER (ORDER BY all_items DESC) AS spending_rank
+FROM orders
+ORDER BY all_items DESC;
+```
+
+`LAG()` looks at the previous row and `LEAD()` looks at the next row within a window:
+
+```sql
+SELECT
+    od.customer_id,
+    items.price,
+    LAG(items.price) OVER(
+        PARTITION BY od.customer_id
+        ORDER BY od.order_purchase_timestamp
+    ) AS lag,
+    LEAD(items.price) OVER(
+        PARTITION BY od.customer_id
+        ORDER BY od.order_purchase_timestamp
+    ) AS lead
+FROM ecommerce.ecomm_orders o,
+     UNNEST(o.order_items) AS items
+JOIN ecommerce.ecomm_order_details od USING (order_id);
+```
+
+A rolling average using the current row and previous nine rows is:
+
+```sql
+SELECT
+    order_id,
+    order_purchase_timestamp,
+    AVG(item.price) OVER(
+        ORDER BY order_purchase_timestamp
+        ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
+    ) AS rolling_avg
+FROM ecommerce.ecomm_order_details od
+JOIN ecommerce.ecomm_orders o USING (order_id),
+     UNNEST(o.order_items) AS item
+ORDER BY order_purchase_timestamp;
+```
+
+To filter a window-function result, BigQuery provides `QUALIFY`:
+
+```sql
+SELECT
+    order_id,
+    order_purchase_timestamp,
+    AVG(item.price) OVER(
+        ORDER BY order_purchase_timestamp
+        ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
+    ) AS rolling_avg
+FROM ecommerce.ecomm_order_details od
+JOIN ecommerce.ecomm_orders o USING (order_id),
+     UNNEST(o.order_items) AS item
+QUALIFY rolling_avg > 500
+ORDER BY order_purchase_timestamp;
+```
+
+### CEP application
+
+CTEs and window functions are especially useful for marketing analytics because they support multi-step analysis without creating many permanent tables. I could use them to rank customers by spending, calculate rolling campaign performance, compare current behavior with previous behavior, or identify high-value customer segments.
+
+## Chapter 4: Data Management and Optimization
+
+### Join types
+
+This chapter expanded the join concepts from earlier lessons.
+
+- **INNER JOIN** returns only matching records.
+- **LEFT JOIN** keeps all rows from the left table.
+- **RIGHT JOIN** keeps all rows from the right table.
+- **FULL OUTER JOIN** keeps rows from both tables, whether they match or not.
+- **CROSS JOIN** creates combinations between rows and is also used with `UNNEST()` to expand repeated data.
+
+For example:
+
+```sql
+SELECT
+    o.order_id,
+    item.price
+FROM ecommerce.ecomm_orders o
+CROSS JOIN UNNEST(o.order_items) AS item;
+```
+
+### Joins with aggregations
+
+Joins can be combined with aggregation to summarize related tables:
+
+```sql
+WITH orders AS (
+    SELECT
+        o.order_id,
+        item.product_id
+    FROM ecommerce.ecomm_orders o,
+         UNNEST(o.order_items) AS item
+)
+
+SELECT
+    p.product_id,
+    COUNT(o.order_id) AS number_of_orders
+FROM orders o
+JOIN ecommerce.ecomm_products p USING (product_id)
+GROUP BY p.product_id;
+```
+
+This query counts the number of orders associated with each product.
+
+### Data Manipulation Language (DML)
+
+The course introduced DML statements used to modify table data. Important statements include `INSERT`, `UPDATE`, `DELETE`, and `MERGE`. The exercises emphasized choosing the appropriate operation depending on whether rows need to be added, changed, removed, or conditionally matched and updated.
+
+### Limiting the amount of data
+
+An important optimization strategy is to query only the columns that are actually needed:
+
+```sql
+SELECT
+    order_id,
+    payment_type
+FROM ecommerce.ecomm_payments
+LIMIT 10;
+```
+
+This is more efficient than selecting every column when only two are required.
+
+### Filtering by time
+
+The course also showed how filtering early can reduce unnecessary data processing. To find orders older than 90 days from the current date:
+
+```sql
+SELECT
+    order_id,
+    order_purchase_timestamp
+FROM ecommerce.ecomm_order_details
+WHERE order_purchase_timestamp <= TIMESTAMP_SUB(
+    CURRENT_TIMESTAMP(),
+    INTERVAL 90 DAY
+);
+```
+
+### Approximate functions as an optimization
+
+When an exact distinct count is not necessary, `APPROX_COUNT_DISTINCT()` can be used to reduce computational work on large datasets.
+
+For example, the finance-report exercise grouped orders by the number of payment installments and calculated an average payment per installment:
+
+```sql
+SELECT
+    p.payment_installments,
+    APPROX_COUNT_DISTINCT(p.order_id) AS approximate_orders,
+    AVG(p.payment_value) / p.payment_installments AS avg_installment_value
+FROM ecommerce.ecomm_payments p
+JOIN ecommerce.ecomm_order_details o USING (order_id)
+WHERE p.payment_installments > 0
+GROUP BY p.payment_installments;
+```
+
+This combines several optimization ideas: selecting only needed fields, joining on a common key, filtering invalid installment counts, grouping only at the required level, and using an approximate distinct count.
+
+### CEP application
+
+Query optimization matters in a CEP because large marketing datasets can become expensive and slow to process. I would try to select only necessary columns, filter early, aggregate before joining when appropriate, and use approximate functions when an exact answer is not required. These practices could be useful with large GA4 exports, customer transaction histories, advertising event data, or other cloud-based marketing datasets.
+
+# Overall Reflection and Future Reference
+
+The most useful concepts I learned were BigQuery's separation of storage and compute, the project-dataset-table hierarchy, nested data with `ARRAY`, `STRUCT`, and `UNNEST`, CTEs, analytical aggregate functions, window functions, and query optimization techniques.
+
+Using BigQuery is different from learning SQL syntax alone because I also need to understand cloud data organization, regions, ingestion methods, nested data structures, distributed query execution, and the cost implications of how a query is written. The same analytical question can sometimes be answered by several SQL queries, but some approaches are much more efficient in BigQuery.
+
+The most challenging topics for me were the architecture terminology and some of the BigQuery-specific functions. In particular, I expect to review `UNNEST()`, approximate aggregate functions, `ANY_VALUE()`, window frames, `QUALIFY`, and date/timestamp functions again.
+
+For digital marketing analytics and my CEP, BigQuery could help me organize and analyze large customer, campaign, transaction, survey, or GA4 datasets. I could use joins to combine customer and transaction information, CTEs to build readable multi-step analyses, date functions to evaluate campaign periods, and window functions to study trends or customer behavior over time.
+
+The query patterns I expect to revisit most often are:
+
+```text
+SELECT specific columns
+JOIN ... USING (...)
+GROUP BY + aggregate functions
+WITH ... AS (...) for CTEs
+UNNEST() for repeated data
+EXTRACT() and TIMESTAMP_ADD/SUB() for dates
+RANK(), LAG(), LEAD(), and rolling windows
+QUALIFY for filtering window-function results
+```
+
+# Appendix: Publication Links
+
+- [GitHub Repository](https://github.com/YOUR-USERNAME/YOUR-REPOSITORY-NAME)
+- [Published Introduction to BigQuery Report](https://YOUR-USERNAME.github.io/YOUR-REPOSITORY-NAME/introduction-to-bigquery.html)
+
+> Before final submission, replace both placeholder URLs above with the actual repository and GitHub Pages links. The published report link should end with `/introduction-to-bigquery.html`.
